@@ -5,6 +5,7 @@ use axum::{
     Form, Router,
 };
 use github::{BlogPost, Repo};
+use html_to_string_macro::html;
 use pulldown_cmark::{html, Options, Parser};
 use reqwest::{Method, StatusCode};
 use serde_derive::Deserialize;
@@ -69,18 +70,15 @@ async fn index(State(state): State<AppState>) -> Html<String> {
     match github::get_home(state.clone()).await {
         None => Html(ERROR_RESPONSE.to_string()),
         Some(data) => {
-            let mut html = create_html_page(false);
-            html.push_str("<body onLoad='onLoad()'>");
-            {
-                html.push_str(&create_nav_bar(None));
-                html.push_str("<div style='margin-left:8px;'>");
-                {
-                    html.push_str(&parse_md_to_html(&data.content));
-                }
-                html.push_str("</div>");
-            }
-            html.push_str("</body>");
-            Html(html)
+            return Html(html!(
+                {create_html_page(false)}
+                <body onLoad="onLoad()">
+                    {create_nav_bar(None)}
+                    <div style="margin-left: 8px;">
+                        {&parse_md_to_html(&data.content)}
+                    </div>
+                </body>
+            ));
         }
     }
 }
@@ -89,21 +87,18 @@ async fn projects(State(state): State<AppState>) -> Html<String> {
     match github::get_repos(state.clone()).await {
         None => Html(ERROR_RESPONSE.to_string()),
         Some(data) => {
-            let mut html = create_html_page(true);
-            html.push_str("<body onLoad='onLoad()'>");
-            {
-                html.push_str(&create_nav_bar(None));
-
-                html.push_str("<ul style='display: grid; column-count: 2; column-gap: 20px; row-gap: 20px; padding: 0px; word-break: break-word'>");
-
-                for (i, repo) in data.iter().enumerate() {
-                    html.push_str(&generate_repo_card(i, repo));
-                }
-
-                html.push_str("</ul>");
-            }
-            html.push_str("</body>");
-            Html(html)
+            return Html(html!{
+                {create_html_page(true)}
+                <body onLoad="onLoad()">
+                    {create_nav_bar(None)}
+                    <ul style="display: grid; column-count: 1; column-gap: 20px; row-gap: 20px; padding: 0px; word-break: break-word">
+                        {data.into_iter()
+                            .enumerate()
+                            .map(|(i, repo)| generate_repo_card(i, &repo))
+                            .collect::<String>()}
+                    </ul>
+                </body>
+            });
         }
     }
 }
@@ -120,24 +115,22 @@ async fn project(
                     if let Some(readme) = &mut repo.readme {
                         *readme = readme.replace(
                             "!Json Formatter Input Box Goes Here!", 
-                            r#"<form action="/formatjson" method="post">
-                                <label for="type">JSON Type:</label><br/>
-                                <input type="radio" id="jsonStandard" name="format" value="JsonStandard" checked>
-                                <label for="jsonStandard">Standard JSON</label><br>
-                                <input type="radio" id="jsonLines" name="format" value="JsonLines">
-                                <label for="jsonLines">Json Lines Format</label><br>  
-                                <label for="json">JSON:</label><br/>
+                            &html!{<form action="/formatjson" method="post">
+                                <label for="type">"JSON Type:"</label><br/>
+                                <input type="radio" id="jsonStandard" name="format" value="JsonStandard" checked />
+                                <label for="jsonStandard">"Standard JSON"</label><br/>
+                                <input type="radio" id="jsonLines" name="format" value="JsonLines" />
+                                <label for="jsonLines">"Json Lines Format"</label><br/>  
+                                <label for="json">"JSON:"</label><br/>
                                 <textarea id="json" name="json" style="width:100%;min-height:200px;"></textarea><br/>
-                                <input type="submit" value="Submit">
-                            </form> "#
+                                <input type="submit" value="Submit" />
+                            </form>}
                         );
                     }
                 }
                 _ => {} // do nothing
             }
 
-            let mut html = create_html_page(false);
-            html.push_str("<body onLoad='onLoad()'>");
             let mut additional_nav_bar_elements = vec![NavBarElement {
                 display_text: "Source Code".to_string(),
                 href: repo.html_url,
@@ -155,22 +148,14 @@ async fn project(
                 _ => {}
             }
 
-            html.push_str(&create_nav_bar(Some(additional_nav_bar_elements)));
-            match repo.readme {
-                None => {
-                    html.push_str("</body>");
-                    Ok(Html(html))
-                }
-                Some(readme) => {
-                    html.push_str("<div>");
-                    {
-                        html.push_str(&parse_md_to_html(&readme));
-                    }
-                    html.push_str("</div>");
-                    html.push_str("</body>");
-                    Ok(Html(html))
-                }
-            }
+
+            Ok(Html(html!{
+                {create_html_page(false)}
+                <body onLoad="onLoad()">
+                    {create_nav_bar(Some(additional_nav_bar_elements))}
+                    {parse_md_to_html(&repo.readme.unwrap_or("".to_string()))}
+                </body>
+            }))
         }
     }
 }
@@ -180,21 +165,18 @@ async fn blog(State(state): State<AppState>) -> Html<String> {
         None => Html(ERROR_RESPONSE.to_string()),
         Some(mut data) => {
             data.sort_by(|post1, post2| post2.description.cmp(&post1.description));
-            let mut html = create_html_page(true);
-            html.push_str("<body onLoad='onLoad()'>");
-            {
-                html.push_str(&create_nav_bar(None));
-
-                html.push_str("<ul style='display: grid; column-count: 2; column-gap: 20px; row-gap: 20px; padding: 0px; word-break: break-word;'>");
-
-                for (i, blog_post) in data.iter().enumerate() {
-                    html.push_str(&generate_blog_card(i, blog_post));
-                }
-
-                html.push_str("</ul>");
-            }
-            html.push_str("</body>");
-            Html(html)
+            Html(html!{
+                {create_html_page(true)}
+                <body onLoad="onLoad">
+                    {create_nav_bar(None)}
+                    <ul style="display: grid; column-count: 2; column-gap: 20px; row-gap: 20px; padding: 0px; word-break: break-word;">
+                        {data.into_iter()
+                            .enumerate()
+                            .map(|(i, blog_post)| generate_blog_card(i, &blog_post))
+                            .collect::<String>()}
+                    </ul>
+                </body>
+            })
         }
     }
 }
@@ -206,22 +188,20 @@ async fn blog_post(
     match github::get_blog_post(&state.clone(), &blog).await {
         None => Err(StatusCode::NOT_FOUND),
         Some(blog_post) => {
-            let mut html = create_html_page(false);
-            html.push_str("<body onLoad='onLoad()'>");
-            html.push_str(&create_nav_bar(None));
-            html.push_str("<div>");
-            {
-                html.push_str(&parse_md_to_html(&blog_post.content));
-            }
-            html.push_str("</div>");
-            html.push_str("</body>");
-            Ok(Html(html))
+            Ok(Html(html!{
+                {create_html_page(false)}
+                <body onLoad="onLoad()">
+                    {create_nav_bar(None)}
+                    {parse_md_to_html(&blog_post.content)}
+                </body>
+            }))
         }
     }
 }
 
 async fn format_json(json: Form<JsonFormData>) -> Html<String> {
-    let mut result = String::new();
+    let mut result = create_html_page(false);
+    result.push_str("<body>");
 
     let jsons;
     match json.0.format {
@@ -232,21 +212,23 @@ async fn format_json(json: Form<JsonFormData>) -> Html<String> {
             jsons = vec![&json.0.json[..]];
         }
     }
-    for json in jsons {
-        result.push_str("<textarea style='height: 50%; width: 100%;'>");
-        let (formatted, errs) = toy_json_formatter::format(json);
-        result.push_str(&formatted);
 
-        if let Some(errs) = errs {
-            result.push('\n');
-            result.push_str("Errors:\n");
-            for err in errs {
-                result.push_str(&format!("{}", err));
-                result.push('\n');
-            }
-        }
-        result.push_str("</textarea>");
+    for json in jsons {
+        let (formatted, errs) = toy_json_formatter::format(json);
+        result.push_str(&html!{
+            <textarea style="width: 100%;">
+                {if errs.as_ref()
+                    .unwrap_or(&Vec::with_capacity(0))
+                    .len() > 0 { "Errors:\n" } else { "" }}
+                {errs.unwrap_or(Vec::with_capacity(0))
+                    .into_iter()
+                    .map(|err| format!("{}\n", err))
+                    .collect::<String>()}
+                {formatted}
+            </textarea>
+        });
     }
+    result.push_str("</body>");
     Html(result)
 }
 

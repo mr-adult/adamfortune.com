@@ -823,6 +823,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "html-to-string-macro"
+version = "0.2.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5c6977f8833107a6524bead31104f4b7f37dc306e62267e3a77cc9f3305609fb"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+ "syn-rsx",
+]
+
+[[package]]
 name = "http"
 version = "0.2.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1485,6 +1497,7 @@ dependencies = [
  "base64",
  "chrono",
  "futures",
+ "html-to-string-macro",
  "pulldown-cmark",
  "reqwest",
  "serde",
@@ -2595,6 +2608,18 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
+]
+
+[[package]]
+name = "syn-rsx"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0b7b0f81c7d3e9bbe4b3005599a3e0b0bbb27bd3514f2b0567b478cc548c3736"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+ "thiserror",
 ]
 
 [[package]]

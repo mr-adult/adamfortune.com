@@ -107,7 +107,7 @@ pub(crate) async fn update_data_if_necessary(state: AppState) -> bool {
     };
     let mut github_repos = match fetch_github_repos(client.clone()).await.ok() {
         None => return false,
-        Some(repos) => repos
+        Some(repos) => repos,
     };
 
     db_repos.sort_by(|repo1, repo2| repo1.id.cmp(&repo2.id));
@@ -217,10 +217,11 @@ pub(crate) async fn update_data_if_necessary(state: AppState) -> bool {
             let mut db_read_mes = match sqlx::query_as::<_, BlogPost>("SELECT * FROM BlogPosts;")
                 .fetch_all(&state.db_connection)
                 .await
-                .ok() {
-                    None => return false,
-                    Some(read_mes) => read_mes,
-                };
+                .ok()
+            {
+                None => return false,
+                Some(read_mes) => read_mes,
+            };
 
             let max_iterations = github_blog_posts.len() + db_read_mes.len();
 
